@@ -26,7 +26,7 @@ func GetCmd() (int, string) {
 		fmt.Printf("\t\n < create > 创建一个项目, 例: create myapp")
 		return 0, ""
 	case "-v":
-		fmt.Println("v1.0.0")
+		fmt.Println("v1.1.0")
 		return 0, ""
 	case "create":
 		if len(parame) == 2 {
