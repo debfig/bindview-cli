@@ -5,9 +5,16 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/debfig/bindview-cli/Tools"
-	"io/ioutil"
+	"github.com/schollz/progressbar/v3"
+	"io"
 	"net/http"
 )
+
+// DownloadUrl 下载地址
+var DownloadUrl string = "https://github.com/bronze-ding/bindview-Template/archive/refs/heads/master.zip"
+
+// DownloadFile 文件缓存区
+var DownloadFile bytes.Buffer
 
 func main() {
 
@@ -17,29 +24,27 @@ func main() {
 		return
 	}
 
-	ui := Tools.LoadIngUi()
-	// 加载动画开始
-	go ui.Start()
+	req, _ := http.NewRequest("GET", DownloadUrl, nil)
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
 
-	// 获取项目
-	strURL := "https://github.com/bronze-ding/bindview-Template/archive/refs/heads/master.zip"
-	res, err := http.Get(strURL)
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"正在下载模板压缩包 (.zip)",
+	)
+
+	io.Copy(io.MultiWriter(&DownloadFile, bar), resp.Body)
+
+	ZipData, err := io.ReadAll(&DownloadFile)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer res.Body.Close()
 
-	zipdata, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	zipReader, _ := zip.NewReader(bytes.NewReader(zipdata), int64(len(zipdata)))
+	ZipReader, _ := zip.NewReader(bytes.NewReader(ZipData), int64(len(ZipData)))
 
 	// 解 .zip 压缩
-	err = Tools.Unzip("", zipReader)
-	if err != nil {
+	if err = Tools.Unzip("", ZipReader); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -47,6 +52,6 @@ func main() {
 	// 文件重命名
 	Tools.NewFileName(&str)
 
-	// 加载动画结束
-	ui.End(str)
+	// 输出命令提示
+	Tools.CommandList(str)
 }
